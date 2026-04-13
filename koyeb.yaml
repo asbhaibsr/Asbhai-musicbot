@@ -1,0 +1,36 @@
+name: asbhaimusic
+services:
+  - name: asbhaimusic-bot
+    type: worker
+    git:
+      repository: github.com/asbhaibsr/AsbhaiMusic
+      branch: main
+    dockerfile: Dockerfile
+    env:
+      - key: API_ID
+        value: "29970536"
+      - key: API_HASH
+        value: "f4bfdcdd4a5c1b7328a7e4f25f024a09"
+      - key: BOT_TOKEN
+        value: ""
+      - key: MONGO_DB_URI
+        value: ""
+      - key: LOGGER_ID
+        value: ""
+      - key: OWNER_ID
+        value: "7315805581"
+      - key: STRING_SESSION
+        value: ""
+      - key: SUPPORT_CHANNEL
+        value: "https://t.me/asbhai_bsr"
+      - key: SUPPORT_GROUP
+        value: "https://t.me/aschat_group"
+      - key: UPSTREAM_REPO
+        value: "https://github.com/asbhaibsr/AsbhaiMusic"
+      - key: GITHUB_REPO
+        value: "https://github.com/asbhaibsr/AsbhaiMusic"
+    instance_types:
+      - type: free
+    scaling:
+      min: 1
+      max: 1
