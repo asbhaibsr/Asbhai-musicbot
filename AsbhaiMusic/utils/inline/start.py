@@ -74,5 +74,6 @@ def music_start_panel(_):
             InlineKeyboardButton(text="˹sᴜᴘᴘᴏʀᴛ˼", callback_data="support"),
         ],
         [InlineKeyboardButton(text="۞ ғᴇᴀᴛᴜʀᴇs ۞", callback_data="feature")],
+        [InlineKeyboardButton(text="🎬 ᴍᴏᴠɪᴇ sᴇᴀʀᴄʜ", url="https://t.me/asfilter_group")],
     ]
     return buttons
