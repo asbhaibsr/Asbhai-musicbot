@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 from pyrogram import filters
 from pyrogram.enums import ChatMembersFilter
-from pyrogram.errors import FloodWait
+from pyrogram.errors import FloodWait, PeerFlood, UserIsBlocked, InputUserDeactivated
 from pyrogram.raw import types
 from AsbhaiMusic.misc import SUDOERS, SPECIAL_ID
 import config
@@ -31,7 +31,7 @@ from AsbhaiMusic.utils.formatters import alpha_to_int
 
 BROADCAST_COMMAND = get_command("BROADCAST_COMMAND")
 AUTO_DELETE = config.CLEANMODE_DELETE_MINS
-AUTO_SLEEP = 5
+AUTO_SLEEP = 10
 IS_BROADCASTING = False
 cleanmode_group = 15
 
@@ -121,6 +121,11 @@ async def braodcast_message(client, message, _):
                         pin += 1
                     except Exception:
                         pass
+            except PeerFlood:
+                await asyncio.sleep(5)
+                continue
+            except (UserIsBlocked, InputUserDeactivated):
+                continue
             except FloodWait as e:
                 flood_time = int(e.value)
                 if flood_time > 200:
