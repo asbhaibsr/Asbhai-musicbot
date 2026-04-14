@@ -1,6 +1,6 @@
 import asyncio
 import importlib
-
+from aiohttp import web
 from pyrogram import idle
 
 import config
@@ -11,7 +11,22 @@ from AsbhaiMusic.plugins import ALL_MODULES
 from AsbhaiMusic.utils.database import get_banned_users, get_gbanned
 
 
+
+async def health_check(request):
+    return web.Response(text="OK", status=200)
+
+async def start_health_server():
+    app_web = web.Application()
+    app_web.router.add_get("/", health_check)
+    app_web.router.add_get("/health", health_check)
+    runner = web.AppRunner(app_web)
+    await runner.setup()
+    port = int(__import__("os").getenv("PORT", 8080))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 async def init():
+    await start_health_server()
     if (
         not config.STRING1
         and not config.STRING2
@@ -19,12 +34,12 @@ async def init():
         and not config.STRING4
         and not config.STRING5
     ):
-        LOGGER("ChampuMusic").error(
+        LOGGER("AsbhaiMusic").error(
             "ᴀssɪsᴛᴀɴᴛ ᴄʟɪᴇɴᴛ ᴠᴀʀɪᴀʙʟᴇs ɴᴏᴛ ᴅᴇғɪɴᴇᴅ, ᴇxɪᴛɪɴɢ..."
         )
         return
     if not config.SPOTIFY_CLIENT_ID and not config.SPOTIFY_CLIENT_SECRET:
-        LOGGER("ChampuMusic").warning(
+        LOGGER("AsbhaiMusic").warning(
             "ɴᴏ sᴘᴏᴛɪғʏ ᴠᴀʀs ᴅᴇғɪɴᴇᴅ. ʏᴏᴜʀ ʙᴏᴛ ᴡᴏɴ'ᴛ ʙᴇ ᴀʙʟᴇ ᴛᴏ ᴘʟᴀʏ sᴘᴏᴛɪғʏ ǫᴜᴇʀɪᴇs..."
         )
 
@@ -50,10 +65,10 @@ async def init():
 
     await Champu.start()
     await Champu.decorators()
-    LOGGER("ChampuMusic").info("\x43\x68\x61\x6D\x70\x75\x20\x42\x6F\x74\x20\x68\x61\x73\x20\x62\x65\x65\x6E\x20\x73\x75\x63\x63\x65\x73\x73\x66\x75\x6C\x6C\x79\x20\x73\x74\x61\x72\x74\x65\x64\x2E\x0A\x0A\x40\x54\x68\x65\x43\x68\x61\x6D\x70\x75\x20")
+    LOGGER("AsbhaiMusic").info("AsbhaiMusic Bot has been successfully started.\n\n@asbhaibsr")
     await idle()
 
 
 if __name__ == "__main__":
     asyncio.get_event_loop_policy().get_event_loop().run_until_complete(init())
-    LOGGER("ChampuMusic").info("sᴛᴏᴘᴘɪɴɢ ᴄʜᴀᴍᴘᴜᴍᴜsɪᴄ! ɢᴏᴏᴅʙʏᴇ")
+    LOGGER("AsbhaiMusic").info("sᴛᴏᴘᴘɪɴɢ ᴄʜᴀᴍᴘᴜᴍᴜsɪᴄ! ɢᴏᴏᴅʙʏᴇ")
