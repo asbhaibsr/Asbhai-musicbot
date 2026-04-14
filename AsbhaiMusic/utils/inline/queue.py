@@ -80,7 +80,7 @@ def aq_markup(_, chat_id):
         ],
         [
             InlineKeyboardButton(
-                text=" ˹ᴄʜᴧᴍᴘᴜ˼ ",
+                text=" ˹ᴀsʙʜᴀɪ˼ ",
                 url="https://t.me/asbhai_bsr",
             ),
         ],
@@ -115,7 +115,7 @@ def queuemarkup(_, vidid, chat_id):
         ],
         [
             InlineKeyboardButton(
-                text=" ˹ᴄʜᴧᴍᴘᴜ˼ ",
+                text=" ˹ᴀsʙʜᴀɪ˼ ",
                 url="https://t.me/asbhai_bsr",
             ),
         ],
