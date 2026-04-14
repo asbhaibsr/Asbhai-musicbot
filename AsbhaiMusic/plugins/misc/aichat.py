@@ -1,10 +1,11 @@
 import asyncio
 import random
 import os
+import re
 import aiohttp
 from pyrogram import filters
 from pyrogram.types import Message
-from pyrogram.enums import ChatAction, ChatMemberStatus
+from pyrogram.enums import ChatAction, ChatMemberStatus, MessageEntityType
 
 from AsbhaiMusic import app
 from AsbhaiMusic.utils.database import is_aichat_on, set_aichat, save_ai_memory, get_ai_memory
@@ -60,7 +61,6 @@ def is_plain_message(message: Message) -> bool:
     if message.reply_to_message:
         return False
     if message.entities:
-        from pyrogram.enums import MessageEntityType
         for e in message.entities:
             if e.type in [MessageEntityType.MENTION, MessageEntityType.TEXT_MENTION]:
                 return False
@@ -69,14 +69,18 @@ def is_plain_message(message: Message) -> bool:
     return True
 
 def is_bad_response(text: str) -> bool:
-    bad = ["you.com", "pricing", "please log", "sign in", "login to", "http://", "https://", "subscribe"]
-    return any(b in text.lower() for b in bad)
+    bad = [
+        "you.com", "pricing", "please log", "sign in", "login to",
+        "subscribe", "check out our", "upgrade your", "free trial",
+        "create account", "register", "sign up", "log in to",
+    ]
+    t = text.lower()
+    return any(b in t for b in bad)
 
 
-# ============ AI RESPONSE - GROQ PRIMARY ============
-
+# ============ AI PROVIDER 1: GROQ (Free, Fast) ============
 async def get_groq_response(user_text: str) -> str:
-    api_key = os.getenv("GROQ_API_KEY", "")
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
         return None
     try:
@@ -103,77 +107,89 @@ async def get_groq_response(user_text: str) -> str:
                 if resp.status == 200:
                     data = await resp.json()
                     reply = data["choices"][0]["message"]["content"].strip()
-                    if not is_bad_response(reply):
+                    if reply and len(reply) > 2 and not is_bad_response(reply):
                         return reply[:300]
     except Exception:
         pass
     return None
 
 
-# ============ AI RESPONSE - G4F FALLBACK ============
-
-async def get_g4f_response(user_text: str) -> str:
+# ============ AI PROVIDER 2: GEMINI FREE (Google) ============
+async def get_gemini_response(user_text: str) -> str:
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        return None
     try:
-        import g4f
-        from g4f.Provider import (
-            AItianhu, AiChatting, AiService, Aibn, Ails,
-            Aivvm, Berlin, ChatAiGpt, ChatForAi, Cromicle,
-            EasyChat, FreeChatgpt, GPTalk, GeekGpt, Gpt6,
-            GptChatly, GptTalkRu, OnlineGpt, Opchatgpts,
-            TalkAi, Theb, V50, Vitalentum, Wewordle, Wuguokai
-        )
-
-        providers = [
-            AItianhu, AiChatting, Aibn, Ails, Aivvm,
-            Berlin, ChatAiGpt, ChatForAi, Cromicle,
-            EasyChat, FreeChatgpt, GPTalk, GeekGpt, Gpt6,
-            GptChatly, GptTalkRu, OnlineGpt, Opchatgpts,
-            TalkAi, Theb, V50, Vitalentum, Wewordle, Wuguokai
-        ]
-        random.shuffle(providers)
-
-        for provider in providers[:6]:  # 6 try karo
-            try:
-                response = await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda p=provider: g4f.ChatCompletion.create(
-                            model=g4f.models.gpt_35_turbo,
-                            provider=p,
-                            messages=[
-                                {"role": "system", "content": SYSTEM_PROMPT},
-                                {"role": "user", "content": user_text}
-                            ],
-                            stream=False,
-                        )
-                    ),
-                    timeout=10
-                )
-                if isinstance(response, str) and len(response.strip()) > 2:
-                    if not is_bad_response(response):
-                        return response.strip()[:300]
-            except Exception:
-                continue
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        payload = {
+            "contents": [{"parts": [{"text": f"{SYSTEM_PROMPT}\n\nUser: {user_text}"}]}],
+            "generationConfig": {"maxOutputTokens": 150, "temperature": 0.9}
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                    if parts:
+                        reply = parts[0].get("text", "").strip()
+                        if reply and len(reply) > 2 and not is_bad_response(reply):
+                            return reply[:300]
     except Exception:
         pass
     return None
 
 
-async def get_ai_response(user_text: str) -> str:
-    # Pehle Groq try karo (agar API key ho)
-    reply = await get_groq_response(user_text)
-    if reply:
-        return reply
-    # Phir g4f try karo
-    reply = await get_g4f_response(user_text)
-    if reply:
-        return reply
+# ============ AI PROVIDER 3: OPENROUTER (Free Models) ============
+async def get_openrouter_response(user_text: str) -> str:
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "model": "mistralai/mistral-7b-instruct:free",
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_text}
+                ],
+                "max_tokens": 150,
+            }
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://t.me",
+                "X-Title": "Telegram Music Bot"
+            }
+            async with session.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=15)
+            ) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    choices = data.get("choices", [])
+                    if choices:
+                        reply = choices[0].get("message", {}).get("content", "").strip()
+                        if reply and len(reply) > 2 and not is_bad_response(reply):
+                            return reply[:300]
+    except Exception:
+        pass
     return None
 
 
-# ============ AI TOGGLE COMMAND ============
+# ============ MAIN AI FUNCTION ============
+async def get_ai_response(user_text: str) -> str:
+    """Priority: Groq > Gemini > OpenRouter > None (fallback)"""
+    for fn in [get_groq_response, get_gemini_response, get_openrouter_response]:
+        reply = await fn(user_text)
+        if reply:
+            return reply
+    return None
 
-@app.on_message(filters.command(["chataigirl"]) & filters.group)
+
+# ============ TOGGLE COMMAND ============
+@app.on_message(filters.command(["chataigirl", "aichat", "ai"]) & filters.group)
 async def toggle_aichat(_, message: Message):
     if message.from_user.id not in SUDOERS:
         try:
@@ -186,20 +202,29 @@ async def toggle_aichat(_, message: Message):
     args = message.command
     if len(args) < 2:
         status = await is_aichat_on(message.chat.id)
-        groq_status = "✅ Set hai" if os.getenv("GROQ_API_KEY") else "❌ Set nahi (g4f use hogi)"
+        groq_ok = "✅ Set" if os.getenv("GROQ_API_KEY") else "❌ Missing"
+        gemini_ok = "✅ Set" if os.getenv("GEMINI_API_KEY") else "❌ Missing"
+        openrouter_ok = "✅ Set" if os.getenv("OPENROUTER_API_KEY") else "❌ Missing"
+        any_key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+
         return await message.reply_text(
-            f"**🤖 AI Chat Girl:** {'🟢 ON' if status else '🔴 OFF'}\n"
-            f"**Groq API:** {groq_status}\n\n"
-            f"`/chataigirl on` ya `/chataigirl off`"
+            f"**🤖 AI Chat Girl:** {'🟢 ON' if status else '🔴 OFF'}\n\n"
+            f"**API Keys:**\n"
+            f"• Groq: {groq_ok}\n"
+            f"• Gemini: {gemini_ok}\n"
+            f"• OpenRouter: {openrouter_ok}\n\n"
+            f"{'⚠️ Koi API key set nahi — sirf fallback replies!' if not any_key else '✅ AI active hai!'}\n\n"
+            f"**Free API links:**\n"
+            f"• console.groq.com\n"
+            f"• aistudio.google.com\n"
+            f"• openrouter.ai\n\n"
+            f"`/chataigirl on` | `/chataigirl off`"
         )
 
     action = args[1].lower()
     if action == "on":
         await set_aichat(message.chat.id, True)
-        await message.reply_text(
-            "**🤖 AI Chat Girl ON!** 🎉\n"
-            "Seedhe messages ka jawab dungi, typing bhi dikhaungi~ 😊"
-        )
+        await message.reply_text("**🤖 AI Chat Girl ON!** 🎉\nSeedhay messages ka jawab dungi~ 😊")
     elif action == "off":
         await set_aichat(message.chat.id, False)
         await message.reply_text("**🤖 AI Chat Girl OFF!** 😴")
@@ -208,27 +233,39 @@ async def toggle_aichat(_, message: Message):
 
 
 # ============ GROUP HANDLER ============
-
 @app.on_message(filters.group & filters.text & ~filters.bot, group=15)
 async def ai_chat_group(_, message: Message):
     try:
         if not await is_aichat_on(message.chat.id):
             return
-        if not is_plain_message(message):
+
+        # Bot reply ya bot mention — tab bhi jawab do
+        bot_mentioned = False
+        if message.reply_to_message and message.reply_to_message.from_user:
+            if message.reply_to_message.from_user.is_bot:
+                bot_mentioned = True
+        if message.entities:
+            for e in message.entities:
+                if e.type == MessageEntityType.MENTION:
+                    bot_mentioned = True
+
+        if not bot_mentioned and not is_plain_message(message):
             return
+
         if not message.text or len(message.text.strip()) < 2:
             return
 
         user_text = message.text.strip()
-        user_id = message.from_user.id if message.from_user else 0
+        # @mention text hata do
+        user_text = re.sub(r'@\w+', '', user_text).strip() or "hello"
 
+        user_id = message.from_user.id if message.from_user else 0
         await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
         if contains_gali(user_text):
             await asyncio.sleep(1)
             return await message.reply_text(random.choice(ROAST_REPLIES))
 
-        # Memory check
         memory_reply = await get_ai_memory(message.chat.id, user_text)
         if memory_reply:
             await asyncio.sleep(1.5)
@@ -247,9 +284,9 @@ async def ai_chat_group(_, message: Message):
 
 
 # ============ PM HANDLER ============
-
 @app.on_message(filters.private & filters.text & ~filters.bot, group=15)
 async def ai_chat_pm(_, message: Message):
+    """PM mein bhi AI automatically kaam karta hai"""
     try:
         if not message.text or message.text.startswith("/"):
             return
@@ -257,8 +294,10 @@ async def ai_chat_pm(_, message: Message):
             return
 
         user_text = message.text.strip()
-        user_id = message.from_user.id
+        if len(user_text) < 2:
+            return
 
+        user_id = message.from_user.id
         await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
         if contains_gali(user_text):
@@ -283,7 +322,6 @@ async def ai_chat_pm(_, message: Message):
 
 
 # ============ OWNER WELCOME ============
-
 @app.on_message(filters.group & filters.new_chat_members, group=14)
 async def owner_welcome(_, message: Message):
     try:
@@ -294,12 +332,8 @@ async def owner_welcome(_, message: Message):
                     f"🔥 **OMG OMG!!** Hamare malik aa gaye!! 👑\n\nJai ho [{member.first_name}](tg://user?id={member.id}) bhaiya ki! 🙏\nAb toh party hogi! 🎉",
                     f"🚨 **ALERT!!** Owner aa gaya group mein!!\nSab savdhan ho jao 😂\nWelcome [{member.first_name}](tg://user?id={member.id}) bhai! 👑🔥",
                     f"👑 **Maalik ka aagman hua hai!!** 🎊\n[{member.first_name}](tg://user?id={member.id}) bhai aa gaye!\nAb sab theek ho jayega 😌🔥",
-                    f"🎺 Dhol bajao!! [{member.first_name}](tg://user?id={member.id}) bhai aa gaye!! 🥳\nGroup mein raunak aa gayi! 🔥",
                 ]
-                await message.reply_text(
-                    random.choice(welcomes),
-                    disable_web_page_preview=True
-                )
+                await message.reply_text(random.choice(welcomes), disable_web_page_preview=True)
                 break
     except Exception:
         pass
