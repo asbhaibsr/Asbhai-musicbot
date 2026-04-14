@@ -13,221 +13,95 @@ from yt_dlp import YoutubeDL
 from AsbhaiMusic import app
 from AsbhaiMusic.misc import SUDOERS, SPECIAL_ID
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Global YouTube token data
-YOUTUBE = {
-    "access_token": "ya29.a0Aa7MYioHdPgbZ2TyYmEyXWhEe97mg60AMgq0u7Pj5KGfxWfag6yMCr0FOiEy6degz04MiRh6tg5YAyye6WhFnfCUT575zfIc-ocEx8NOCFfZySA96gu72f_xZNcD_eB27gfMakcICCAPo-058g_Cj3X6sJ0QVCHl92sXmLMICqXx8yv0ef4s_8A0JmAS3YQwL5_q-1vnVVH1ve0neNIaCgYKAWASARISFQHGX2MiesdEXniVgn_mAN9IRFl9PA0218",
-    "expires": 1776212218.346968,
-    "refresh_token": "1//03WQeVwwtvlSZCgYIARAAGAMSNwF-L9IryloFVo8f7x1rlEUuhCdW0zzkdojgEqJ3iqxsiYvTk4s_ULcZCBlgcLPC09q1BigBU0k",
-    "token_type": "Bearer"
-}
-
 COOKIES_FILE = "cookies/cookies.txt"
+_cookie_warning_sent = False  # Sirf ek baar warning bhejo
+
 
 def init_youtube_token():
-    TOKEN_DATA = os.getenv("TOKEN_DATA")
-    if not TOKEN_DATA:
-        os.environ["TOKEN_DATA"] = json.dumps(YOUTUBE)
+    pass  # OAuth removed - cookies use ho rahi hain
 
-def update_youtube_token(new_token_data: dict):
-    """
-    Updates the global YOUTUBE dictionary and environment variable with new token data.
-    """
-    global YOUTUBE
-    YOUTUBE.update(new_token_data)
-    os.environ["TOKEN_DATA"] = json.dumps(YOUTUBE)
-    logger.info("YouTube token data updated successfully.")
-
-def generate_new_auth_token():
-    """
-    Simulates generating a new auth token and updates the global YOUTUBE dictionary.
-    Replace this with actual logic to generate a new token.
-    """
-    # Placeholder for generating new token data
-    new_token_data = {
-        "access_token": "new_access_token_here",
-        "expires": time.time() + 3600,  # 1 hour from now
-        "refresh_token": "new_refresh_token_here",
-        "token_type": "Bearer"
-    }
-
-    # Update the global YOUTUBE dictionary and environment variable
-    update_youtube_token(new_token_data)
-    logger.info("New auth token generated and updated.")
 
 def get_random_cookie():
     folder_path = os.path.join(os.getcwd(), "cookies")
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-        logger.warning(f"Created cookies directory at {folder_path}")
         return None
-
     txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
     if not txt_files:
-        logger.error("No .txt files found in the specified folder.")
         return None
     return random.choice(txt_files)
 
-class YouTubeAuthDownloader:
-    def __init__(self):
-        self.base_url = "https://www.youtube.com/watch?v="
-
-    def get_ytdl_options(self, ytdl_opts, auth_token: str) -> Union[str, dict, list]:
-        if isinstance(ytdl_opts, list):
-            ytdl_opts += ["--username", "oauth2", "--password", auth_token]
-        elif isinstance(ytdl_opts, str):
-            ytdl_opts += f"--username oauth2 --password {auth_token} "
-        elif isinstance(ytdl_opts, dict):
-            ytdl_opts.update({"username": "oauth2", "password": auth_token})
-        return ytdl_opts
-
-    async def download(self, link: str, auth_token: str, video: bool = True) -> str:
-        loop = asyncio.get_running_loop()
-
-        def download_content():
-            ydl_opts = {
-                "format": (
-                    "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])"
-                    if video
-                    else "bestaudio/best"
-                ),
-                "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
-                "nocheckcertificate": True,
-                "quiet": True,
-                "no_warnings": True,
-            }
-            ydl_opts = self.get_ytdl_options(ydl_opts, auth_token)
-
-            ydl = YoutubeDL(ydl_opts)
-            info = ydl.extract_info(link, download=False)
-            file_path = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if not os.path.exists(file_path):
-                ydl.download([link])
-            return file_path
-
-        try:
-            file_path = await loop.run_in_executor(None, download_content)
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to download content: {e}")
-            raise
 
 async def check_cookies(video_url):
     cookie_file = get_random_cookie()
     if not cookie_file:
         return False
-
-    opts = {
-        "format": "bestaudio",
-        "quiet": True,
-        "cookiefile": cookie_file,
-    }
     try:
-        with YoutubeDL(opts) as ytdl:
-            ytdl.extract_info(video_url, download=False)
-        return True
+        loop = asyncio.get_running_loop()
+        def _check():
+            ydl_opts = {
+                "quiet": True,
+                "no_warnings": True,
+                "cookiefile": cookie_file,
+                "simulate": True,
+                "skip_download": True,
+            }
+            with YoutubeDL(ydl_opts) as ydl:
+                ydl.extract_info(video_url, download=False)
+            return True
+        result = await asyncio.wait_for(
+            loop.run_in_executor(None, _check),
+            timeout=20
+        )
+        return result
     except Exception as e:
         logger.error(f"Cookie check failed: {e}")
         return False
 
-async def check_auth_token():
-    video_url = "https://www.youtube.com/watch?v=LLF3GMfNEYU"
-    auth_token = os.getenv("TOKEN_DATA")
-    if not auth_token:
-        logger.error("Auth token not found in environment variables.")
-        return False
 
-    opts = {
-        "format": "bestaudio",
-        "quiet": True,
-        "username": "oauth2",
-        "password": auth_token,
-    }
-    try:
-        with YoutubeDL(opts) as ytdl:
-            ytdl.extract_info(video_url, download=False)
-        return True
-    except Exception as e:
-        logger.error(f"Auth token check failed: {e}")
-        return False
+# Cookie status check - sirf ek baar owner ko bhejo
+@app.on_message(filters.command(["cookiestatus", "cookies", "cookiescheck"]) & filters.user(list(OWNER_ID)))
+async def cookie_status_cmd(_, message):
+    m = await message.reply_text("🔄 Cookies check kar rahi hun...")
+    ok = await check_cookies("https://www.youtube.com/watch?v=LLF3GMfNEYU")
+    if ok:
+        await m.edit("✅ **Cookies Valid hain!** YouTube songs chalenge.")
+    else:
+        await m.edit(
+            "❌ **Cookies expire ho gayi hain!**\n\n"
+            "Firefox se nayi cookies export karo aur\n"
+            "`cookies/cookies.txt` ko GitHub pe replace karo.\n\n"
+            "Phir Koyeb pe redeploy karo."
+        )
 
-@app.on_message(
-    filters.command(
-        [
-            "authstatus",
-            "authtoken",
-            "cookies",
-            "cookie",
-            "cookiesstatus",
-            "cookiescheck",
-        ]
-    )
-    & SUDOERS
-)
-async def list_formats(client, message):
-    status_message = "**Status:**\n\n"
-    status_message += "Cookies: Checking...\nAuth Token: Checking..."
-    status_msg = await message.reply_text(status_message)
 
-    cookie_status = await check_cookies("https://www.youtube.com/watch?v=LLF3GMfNEYU")
-    status_message = "**Status:**\n\n"
-    status_message += f"Cookies: {'✅ Alive' if cookie_status else '❌ Dead'}\nAuth Token: Checking..."
-    await status_msg.edit_text(status_message)
+# Auto cookie check - bot start hone pe - SIRF ONCE
+_startup_check_done = False
 
-    use_token = await check_auth_token()
-    status_message = "**Status:**\n\n"
-    status_message += f"Cookies: {'✅ Alive' if cookie_status else '❌ Dead'}\n"
-    status_message += f"Auth Token: {'✅ Alive' if use_token else '❌ Dead'}"
-    await status_msg.edit_text(status_message)
-
-    if not use_token:
-        status_message += "\n\n**Generating a new Auth token...**"
-        await status_msg.edit_text(status_message)
+async def startup_cookie_check():
+    global _startup_check_done, _cookie_warning_sent
+    if _startup_check_done:
+        return
+    _startup_check_done = True
+    await asyncio.sleep(30)  # Bot start hone do pehle
+    ok = await check_cookies("https://www.youtube.com/watch?v=LLF3GMfNEYU")
+    if not ok and not _cookie_warning_sent:
+        _cookie_warning_sent = True
         try:
-            generate_new_auth_token()  # Generate and update the new token
-            await message.reply_text(f"\n**✅ Successfully generated and updated a new token.**")
-        except Exception as ex:
-            logger.error(f"Failed to generate a new token: {ex}")
-            await message.reply_text(
-                f"\n**❌ Failed to generate a new token: {str(ex)}**"
-            )
-
-def check_cookies_expiry():
-    if not os.path.exists(COOKIES_FILE):
-        logger.error("Cookies file not found.")
-        return False
-
-    with open(COOKIES_FILE, "r") as file:
-        cookies = file.read()
-        if "expires" in cookies:
-            expiry_time = float(cookies.split("expires=")[1].split(";")[0])
-            if time.time() > expiry_time:
-                logger.info("Cookies have expired.")
-                return False
-            else:
-                logger.info("Cookies are still valid.")
-                return True
-        else:
-            logger.error("No expiry information found in cookies.")
-            return False
-
-def generate_new_cookies():
-    # Placeholder for generating new cookies
-    # This should be replaced with actual logic to generate new cookies
-    new_cookies = "new_cookies_data_here"
-    with open(COOKIES_FILE, "w") as file:
-        file.write(new_cookies)
-    logger.info("New cookies generated and saved.")
-
-def replace_cookies_if_expired():
-    if not check_cookies_expiry():
-        generate_new_cookies()
-
-# Example usage
-if __name__ == "__main__":
-    init_youtube_token()
-    replace_cookies_if_expired()
+            for owner_id in OWNER_ID:
+                await app.send_message(
+                    owner_id,
+                    "⚠️ **YouTube Cookies expire ho gayi hain!**\n\n"
+                    "Songs play nahi honge jab tak nayi cookies nahi daloge.\n\n"
+                    "**Kya karna hai:**\n"
+                    "1. Firefox se youtube.com cookies export karo\n"
+                    "2. `cookies/cookies.txt` GitHub pe replace karo\n"
+                    "3. Koyeb pe redeploy karo\n\n"
+                    "Ya `/cookiestatus` command se check karo."
+                )
+                break  # Sirf pehle owner ko bhejo
+        except Exception:
+            pass
