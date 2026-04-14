@@ -27,7 +27,7 @@ YOUTUBE = {
 
 COOKIES_FILE = "cookies/cookies.txt"
 
-def TheChampu():
+def init_youtube_token():
     TOKEN_DATA = os.getenv("TOKEN_DATA")
     if not TOKEN_DATA:
         os.environ["TOKEN_DATA"] = json.dumps(YOUTUBE)
@@ -229,5 +229,5 @@ def replace_cookies_if_expired():
 
 # Example usage
 if __name__ == "__main__":
-    TheChampu()
+    init_youtube_token()
     replace_cookies_if_expired()
