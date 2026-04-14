@@ -11,7 +11,6 @@ from AsbhaiMusic import app
 from AsbhaiMusic.utils.database import is_aichat_on, set_aichat, save_ai_memory, get_ai_memory
 from AsbhaiMusic.misc import SUDOERS
 
-# ============ GALI FILTER ============
 GALI_WORDS = [
     "chutiya", "madarchod", "behenchod", "gandu", "randi", "harami",
     "bhosdike", "kamina", "kutte", "mc", "bc", "bkl", "bsdk",
@@ -25,8 +24,6 @@ ROAST_REPLIES = [
     "haha tu khud hi janta hai kya hai tu 😂",
     "chill kar yaar, chai pi pehle ☕😂",
     "itni energy hai toh padhai mein laga na 💀",
-    "oof shant! ghar pe sab theek hai na? 😂",
-    "tera dil dukha hai kya bhai? 😂 bata kya hua",
 ]
 
 FALLBACK_REPLIES = [
@@ -38,8 +35,6 @@ FALLBACK_REPLIES = [
     "acha? fir kya? 👀",
     "haan haan interesting 😂",
     "samajh gayi bas 😌",
-    "kya scene hai bhai 😂",
-    "teri baat sun li 👂",
 ]
 
 SYSTEM_PROMPT = (
@@ -48,14 +43,11 @@ SYSTEM_PROMPT = (
     "Bilkul close friend ki tarah — chill, funny, kabhi kabhi thoda roast. "
     "Sirf 1-2 choti lines mein jawab de. "
     "Kabhi kabhi emoji use kar. "
-    "Koi website link mat de. Koi intro mat de jaise 'main hu' wala. "
-    "Seedha jawab de jaise yaar karta hai. "
-    "Agar kuch na pata ho to funny tarike se bata."
+    "Koi website link mat de. Seedha jawab de jaise yaar karta hai."
 )
 
 def contains_gali(text: str) -> bool:
-    t = text.lower()
-    return any(g in t for g in GALI_WORDS)
+    return any(g in text.lower() for g in GALI_WORDS)
 
 def is_plain_message(message: Message) -> bool:
     if message.reply_to_message:
@@ -74,11 +66,9 @@ def is_bad_response(text: str) -> bool:
         "subscribe", "check out our", "upgrade your", "free trial",
         "create account", "register", "sign up", "log in to",
     ]
-    t = text.lower()
-    return any(b in t for b in bad)
+    return any(b in text.lower() for b in bad)
 
 
-# ============ AI PROVIDER 1: GROQ (Free, Fast) ============
 async def get_groq_response(user_text: str) -> str:
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
@@ -114,7 +104,6 @@ async def get_groq_response(user_text: str) -> str:
     return None
 
 
-# ============ AI PROVIDER 2: GEMINI FREE (Google) ============
 async def get_gemini_response(user_text: str) -> str:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
@@ -139,7 +128,6 @@ async def get_gemini_response(user_text: str) -> str:
     return None
 
 
-# ============ AI PROVIDER 3: OPENROUTER (Free Models) ============
 async def get_openrouter_response(user_text: str) -> str:
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
@@ -178,9 +166,7 @@ async def get_openrouter_response(user_text: str) -> str:
     return None
 
 
-# ============ MAIN AI FUNCTION ============
 async def get_ai_response(user_text: str) -> str:
-    """Priority: Groq > Gemini > OpenRouter > None (fallback)"""
     for fn in [get_groq_response, get_gemini_response, get_openrouter_response]:
         reply = await fn(user_text)
         if reply:
@@ -188,7 +174,6 @@ async def get_ai_response(user_text: str) -> str:
     return None
 
 
-# ============ TOGGLE COMMAND ============
 @app.on_message(filters.command(["chataigirl", "aichat", "ai"]) & filters.group)
 async def toggle_aichat(_, message: Message):
     if message.from_user.id not in SUDOERS:
@@ -206,15 +191,14 @@ async def toggle_aichat(_, message: Message):
         gemini_ok = "✅ Set" if os.getenv("GEMINI_API_KEY") else "❌ Missing"
         openrouter_ok = "✅ Set" if os.getenv("OPENROUTER_API_KEY") else "❌ Missing"
         any_key = os.getenv("GROQ_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
-
         return await message.reply_text(
             f"**🤖 AI Chat Girl:** {'🟢 ON' if status else '🔴 OFF'}\n\n"
             f"**API Keys:**\n"
             f"• Groq: {groq_ok}\n"
             f"• Gemini: {gemini_ok}\n"
             f"• OpenRouter: {openrouter_ok}\n\n"
-            f"{'⚠️ Koi API key set nahi — sirf fallback replies!' if not any_key else '✅ AI active hai!'}\n\n"
-            f"**Free API links:**\n"
+            f"{'⚠️ Koi API key nahi — sirf fallback replies aayenge!' if not any_key else '✅ AI ready hai!'}\n\n"
+            f"**Free keys:**\n"
             f"• console.groq.com\n"
             f"• aistudio.google.com\n"
             f"• openrouter.ai\n\n"
@@ -232,14 +216,12 @@ async def toggle_aichat(_, message: Message):
         await message.reply_text("❌ `/chataigirl on` ya `/chataigirl off`")
 
 
-# ============ GROUP HANDLER ============
 @app.on_message(filters.group & filters.text & ~filters.bot, group=15)
 async def ai_chat_group(_, message: Message):
     try:
         if not await is_aichat_on(message.chat.id):
             return
 
-        # Bot reply ya bot mention — tab bhi jawab do
         bot_mentioned = False
         if message.reply_to_message and message.reply_to_message.from_user:
             if message.reply_to_message.from_user.is_bot:
@@ -255,11 +237,9 @@ async def ai_chat_group(_, message: Message):
         if not message.text or len(message.text.strip()) < 2:
             return
 
-        user_text = message.text.strip()
-        # @mention text hata do
-        user_text = re.sub(r'@\w+', '', user_text).strip() or "hello"
-
+        user_text = re.sub(r'@\w+', '', message.text.strip()).strip() or "hello"
         user_id = message.from_user.id if message.from_user else 0
+
         await app.send_chat_action(message.chat.id, ChatAction.TYPING)
 
         if contains_gali(user_text):
@@ -283,10 +263,8 @@ async def ai_chat_group(_, message: Message):
         pass
 
 
-# ============ PM HANDLER ============
 @app.on_message(filters.private & filters.text & ~filters.bot, group=15)
 async def ai_chat_pm(_, message: Message):
-    """PM mein bhi AI automatically kaam karta hai"""
     try:
         if not message.text or message.text.startswith("/"):
             return
@@ -321,7 +299,6 @@ async def ai_chat_pm(_, message: Message):
         pass
 
 
-# ============ OWNER WELCOME ============
 @app.on_message(filters.group & filters.new_chat_members, group=14)
 async def owner_welcome(_, message: Message):
     try:
@@ -329,9 +306,9 @@ async def owner_welcome(_, message: Message):
         for member in message.new_chat_members:
             if member.id in OWNER_ID:
                 welcomes = [
-                    f"🔥 **OMG OMG!!** Hamare malik aa gaye!! 👑\n\nJai ho [{member.first_name}](tg://user?id={member.id}) bhaiya ki! 🙏\nAb toh party hogi! 🎉",
-                    f"🚨 **ALERT!!** Owner aa gaya group mein!!\nSab savdhan ho jao 😂\nWelcome [{member.first_name}](tg://user?id={member.id}) bhai! 👑🔥",
-                    f"👑 **Maalik ka aagman hua hai!!** 🎊\n[{member.first_name}](tg://user?id={member.id}) bhai aa gaye!\nAb sab theek ho jayega 😌🔥",
+                    f"🔥 **OMG!!** Hamare malik aa gaye!! 👑\nJai ho [{member.first_name}](tg://user?id={member.id}) bhaiya ki! 🙏",
+                    f"🚨 **ALERT!!** Owner aa gaya!! Sab savdhan! 😂\nWelcome [{member.first_name}](tg://user?id={member.id}) bhai! 👑",
+                    f"👑 **Maalik ka aagman!!** 🎊\n[{member.first_name}](tg://user?id={member.id}) bhai aa gaye! 🔥",
                 ]
                 await message.reply_text(random.choice(welcomes), disable_web_page_preview=True)
                 break
