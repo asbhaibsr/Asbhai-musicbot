@@ -105,6 +105,14 @@ GITHUB_REPO = getenv("GITHUB_REPO", "https://github.com/asbhaibsr/AsbhaiMusic")
 SPOTIFY_CLIENT_ID = getenv("SPOTIFY_CLIENT_ID", "a29b0b331adf4c428ce3a73a9b20a306")
 SPOTIFY_CLIENT_SECRET = getenv("SPOTIFY_CLIENT_SECRET", "e463dede19b04610ad27dc43eb19b56e")
 
+# ========== AI API KEYS ==========
+# Groq (Free & Fast) — console.groq.com
+GROQ_API_KEY = getenv("GROQ_API_KEY", None)
+# Google Gemini (Free) — aistudio.google.com
+GEMINI_API_KEY = getenv("GEMINI_API_KEY", None)
+# OpenRouter (Free models) — openrouter.ai
+OPENROUTER_API_KEY = getenv("OPENROUTER_API_KEY", None)
+
 
 # Maximum number of video calls allowed on bot. You can later set it via /set_video_limit on telegram
 VIDEO_STREAM_LIMIT = int(getenv("VIDEO_STREAM_LIMIT", 999))
