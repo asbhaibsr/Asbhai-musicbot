@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 # Global YouTube token data
 YOUTUBE = {
-    "access_token": "ya29.a0AXeO80QLPVs5p7h_E7caxmPcVRG82MkGuILze6FWi6gGFVWTRdjaq8jBP02PvRAlAewi9PidTZNEsdWsi1_EnvYhroWjXJSJ1oG1-E029eBU1-lKVgPWiIFPbetScImSXl0I8WZqvedUO_5DvUIpoxhO2NtWTgBJ7879-NjfQzNMiSJzE2xbaCgYKATcSARISFQHGX2MiPXAOG-hTrmIUocJ9aqKW5Q0187",
-    "expires": 1740224406.703791,
-    "refresh_token": "1//05tJV9kJp7hsJCgYIARAAGAUSNwF-L9Irdpc0e9mqHJNQPg72hB-iY6VTGStBevutF3NVuYaAXHlgshkB3ufbZnJvSdsw8hheugc",
+    "access_token": "ya29.a0Aa7MYioHdPgbZ2TyYmEyXWhEe97mg60AMgq0u7Pj5KGfxWfag6yMCr0FOiEy6degz04MiRh6tg5YAyye6WhFnfCUT575zfIc-ocEx8NOCFfZySA96gu72f_xZNcD_eB27gfMakcICCAPo-058g_Cj3X6sJ0QVCHl92sXmLMICqXx8yv0ef4s_8A0JmAS3YQwL5_q-1vnVVH1ve0neNIaCgYKAWASARISFQHGX2MiesdEXniVgn_mAN9IRFl9PA0218",
+    "expires": 1776212218.346968,
+    "refresh_token": "1//03WQeVwwtvlSZCgYIARAAGAMSNwF-L9IryloFVo8f7x1rlEUuhCdW0zzkdojgEqJ3iqxsiYvTk4s_ULcZCBlgcLPC09q1BigBU0k",
     "token_type": "Bearer"
 }
 
