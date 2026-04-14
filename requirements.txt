@@ -34,3 +34,4 @@ git+https://github.com/yt-dlp/yt-dlp
 git+https://github.com/alexmercerind/youtube-search-python@main
 git+https://github.com/joetats/youtube_search@master
 git+https://github.com/TheChampu/yt-dlp-youtube-oauth2
+g4f==0.2.1.2
