@@ -509,3 +509,70 @@ async def delete_app_info(user_id: int, app_name: str):
             await deploy_db.update_one({"_id": user_id}, {"$set": {"apps": apps}})
             return True
     return False
+
+# ============================AI CHAT DB=============================
+
+aichat_db = mongodb.aichat_settings
+ai_memory_db = mongodb.ai_memory
+
+async def is_aichat_on(chat_id: int) -> bool:
+    data = await aichat_db.find_one({"chat_id": chat_id})
+    return data.get("enabled", False) if data else False
+
+async def set_aichat(chat_id: int, enabled: bool):
+    await aichat_db.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"enabled": enabled}},
+        upsert=True
+    )
+
+async def save_ai_memory(chat_id: int, user_id: int, user_text: str, bot_reply: str):
+    await ai_memory_db.insert_one({
+        "chat_id": chat_id,
+        "user_id": user_id,
+        "user_text": user_text,
+        "bot_reply": bot_reply,
+    })
+
+async def get_ai_memory(chat_id: int, user_text: str):
+    import re
+    words = [w for w in re.split(r'\W+', user_text.lower()) if len(w) > 2]
+    if not words:
+        return None
+    cursor = ai_memory_db.find({"chat_id": chat_id})
+    best = None
+    best_score = 0
+    async for doc in cursor:
+        saved = doc.get("user_text", "").lower()
+        score = sum(1 for w in words if w in saved)
+        if score > best_score:
+            best_score = score
+            best = doc
+    if best_score >= max(1, len(words) // 2):
+        return best.get("bot_reply")
+    return None
+
+
+# ============================REMOVEFILE DB=============================
+
+removefile_db = mongodb.removefile_settings
+
+async def get_removefile(chat_id: int):
+    data = await removefile_db.find_one({"chat_id": chat_id})
+    if data and data.get("enabled"):
+        return data.get("hours", 1)
+    return None
+
+async def set_removefile(chat_id: int, hours: float):
+    await removefile_db.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"enabled": True, "hours": hours}},
+        upsert=True
+    )
+
+async def disable_removefile(chat_id: int):
+    await removefile_db.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"enabled": False}},
+        upsert=True
+        )
