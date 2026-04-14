@@ -34,38 +34,25 @@ def cookies():
 
 
 def get_ytdl_options(ytdl_opts, commamdline=True) -> Union[str, dict, list]:
+    try:
+        cookie_file = cookies()
+    except Exception:
+        return ytdl_opts
+
     if commamdline:
         if isinstance(ytdl_opts, list):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += ["--username", "oauth2", "--password", "''"]
-            else:
-                ytdl_opts += ["--cookies", cookies()]
+            ytdl_opts += ["--cookies", cookie_file]
         elif isinstance(ytdl_opts, str):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += "--username oauth2 --password '' "
-            else:
-                ytdl_opts += f"--cookies {cookies()}"
+            ytdl_opts += f"--cookies {cookie_file} "
         elif isinstance(ytdl_opts, dict):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts.update({"username": "oauth2", "password": ""})
-            else:
-                ytdl_opts["cookiefile"] = cookies()
+            ytdl_opts["cookiefile"] = cookie_file
     else:
         if isinstance(ytdl_opts, list):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += ["username", "oauth2", "password", "''"]
-            else:
-                ytdl_opts += ["cookiefile", cookies()]
+            ytdl_opts += ["cookiefile", cookie_file]
         elif isinstance(ytdl_opts, str):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts += "username oauth2 password '' "
-            else:
-                ytdl_opts += f"cookiefile {cookies()}"
+            ytdl_opts += f"cookiefile {cookie_file} "
         elif isinstance(ytdl_opts, dict):
-            if os.getenv("TOKEN_DATA"):
-                ytdl_opts.update({"username": "oauth2", "password": ""})
-            else:
-                ytdl_opts["cookiefile"] = cookies()
+            ytdl_opts["cookiefile"] = cookie_file
 
     return ytdl_opts
 
