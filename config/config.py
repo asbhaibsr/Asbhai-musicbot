@@ -30,10 +30,7 @@ DURATION_LIMIT_MIN = int(
 )  # Remember to give value in Minutes
 
 
-EXTRA_PLUGINS = getenv(
-    "EXTRA_PLUGINS",
-    True,
-)
+EXTRA_PLUGINS = getenv("EXTRA_PLUGINS", "False")
 
 # Fill True if you want to load extra plugins
 # Fill here the external plugins repo where plugins that you want to load
@@ -82,7 +79,7 @@ SUPPORT_GROUP = getenv(
     "SUPPORT_GROUP", "https://t.me/aschat_group"
 )  # Example:- https://t.me/aschat_group
 # Set it in True if you want to leave your assistant after a certain amount of time. [Set time via AUTO_LEAVE_ASSISTANT_TIME]
-AUTO_LEAVING_ASSISTANT = getenv("AUTO_LEAVING_ASSISTANT", True)
+AUTO_LEAVING_ASSISTANT = getenv("AUTO_LEAVING_ASSISTANT", "True")
 
 # Time after which you're assistant account will leave chats automatically.
 AUTO_LEAVE_ASSISTANT_TIME = int(
@@ -90,7 +87,7 @@ AUTO_LEAVE_ASSISTANT_TIME = int(
 )  # Remember to give value in Seconds
 
 # Set it true if you want your bot to be private only [You'll need to allow CHAT_ID via /authorize command then only your bot will play music in that chat.]
-PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", False)
+PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", "False")
 
 
 # Time sleep duration For Youtube Downloader
@@ -128,7 +125,7 @@ TG_VIDEO_FILESIZE_LIMIT = int(getenv("TG_VIDEO_FILESIZE_LIMIT", 2145386496)) # R
 
 
 # If you want your bot to setup the commands automatically in the bot's menu set it to true.
-SET_CMDS = getenv("SET_CMDS", False)
+SET_CMDS = getenv("SET_CMDS", "False")
 
 
 # You'll need a Pyrogram String Session for these vars. Generate String from @StringFatherBot or similar
